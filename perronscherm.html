@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perronscherm</title>
+<style>
+  :root{
+    --purple:#8F4B8B;
+    --purple2:#C9A9C5;
+    --purple3:#D7BDD4;
+    --ink:#1B1B1F;
+    --ok:#2DB84D;
+    --late:#F9A23A;
+    --bad:#E14B42;
+    --rule:#E9E6EC;
+    --label-angle: 36deg;  /* усиленный наклон */
+    --label-size: 14px;    /* базовый размер подписей под точками */
+  }
+  html,body{height:100%;margin:0;background:#f4f4f6;color:var(--ink);
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;}
+  .viewport{min-height:100vh;width:100%;display:grid;place-items:center;overflow:auto;padding:10px;}
+  .canvas{width:768px;height:1356px;background:#fff;border-radius:22px;overflow:hidden;
+    box-shadow:0 10px 20px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.06);transform-origin:center center;}
+  .frame{width:100%;height:100%;min-height:100%;padding:28px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box;}
+
+  /* Header */
+  .header{display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch;flex:0 0 auto;}
+  .title{background:var(--purple);color:#fff;border-radius:22px;padding:18px 22px;display:grid;
+    grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:10px 16px;align-items:center;}
+  .title h1{grid-column:1/2;grid-row:1/3;margin:0;font-weight:800;line-height:1.05;font-size:38px;}
+  .clock{grid-column:2/3;grid-row:1/2;font-size:66px;font-weight:900;letter-spacing:.5px;}
+  .chip{grid-column:1/2;grid-row:3/4;place-self:start;background:#fff2;color:#fff;border:2px solid #fff5;padding:6px 10px;border-radius:8px;
+    font-weight:600;font-size:20px;}
+  .stat{grid-column:2/3;grid-row:2/3;justify-self:start;background:#fff;color:#1D6B2F;border-radius:12px;padding:6px 12px;
+    font-weight:800;font-size:24px;line-height:1;display:inline-block;box-shadow:inset 0 0 0 4px #DFF3E5;}
+  .platform{background:var(--purple);border-radius:22px;display:grid;grid-template-rows:auto auto;justify-items:center;align-content:center;color:#fff;padding:10px 8px;}
+  .platform .circle{width:160px;height:160px;border-radius:26px;display:grid;place-items:center;background:#fff2;font-size:104px;font-weight:900;line-height:1;}
+  .platform .small{margin-top:10px;background:#fff2;padding:8px 14px;border-radius:12px;font-weight:800;font-size:22px;}
+
+  /* Table */
+  .table{display:flex;flex-direction:column;gap:22px;margin-top:4px;flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px;}
+  .row, .route{display:grid;grid-template-columns:92px 1fr 150px 120px;align-items:center;gap:18px;}
+  .row+.row, .row+.route, .route+.row{border-top:1px solid var(--rule);padding-top:22px;}
+  .time{font-size:28px;font-weight:700;}
+  .dest{font-size:28px;font-weight:600;}
+  .train{font-size:24px;font-weight:700;color:#353745;}
+  .status{justify-self:end;font-size:24px;font-weight:700;white-space:nowrap;overflow:hidden;max-width:100%;}
+  .ok{color:var(--ok);} .late{color:var(--late);} .bad{color:var(--bad);}
+
+  /* Route card */
+  .route{background:var(--purple2);border-radius:24px;padding:18px 22px 22px;display:none;}
+  .route.open{display:grid;}
+  .route .card{
+    grid-column:1/-1;margin-top:12px;background:var(--purple3);
+    border-radius:18px;padding:22px; display:flex; align-items:center; justify-content:center;
+  }
+  /* Контрастная «пилюля» статуса внутри фиолетового блока */
+  .route .status{
+    background:#fff; color:#1b1b1f; border-radius:14px; padding:6px 12px; font-weight:800;
+    box-shadow: 0 1px 0 rgba(0,0,0,.04), inset 0 0 0 3px rgba(0,0,0,.03);
+  }
+  .route .status.ok{ color:#1D6B2F; }
+  .route .status.late{ color:#A25B1C; }
+  .route .status.bad{ color:#9A1F19; }
+
+  /* Track: first-letter anchor + robust positioning */
+  .track{
+    position:relative;
+    width:600px;          /* вычисляем и переопределяем скриптом */
+    max-width:96%;
+    margin:0 auto;
+    height:158px;
+    --lineY: 46px;
+  }
+  .track::before{
+    content:""; position:absolute; left:0; right:0; top:var(--lineY);
+    height:4px; background:#6B3D67; border-radius:2px;
+  }
+  .stop-wrap{position:absolute; top:0; height:100%;}
+  /* Центр точки совмещаем с X якоря (начало надписи) */
+  .dot{position:absolute; left:11px; top:var(--lineY); width:14px; height:14px; background:#fff;
+    border:4px solid #6B3D67; border-radius:50%; transform:translate(-50%,-50%);}
+  .slabel{
+    position:absolute; left:0; top: calc(var(--lineY) + 26px);
+    transform-origin: top left; transform: rotate(var(--label-angle));
+    text-align:left; font-size:var(--label-size); line-height:1.05; color:#2c2e38; white-space:nowrap; padding:0 2px; font-weight:700;
+  }
+
+  /* Language pills */
+  .langs{margin-top:0;display:flex;justify-content:center;gap:22px;flex:0 0 auto;
+    padding-top:8px; padding-bottom:4px; flex-wrap:wrap;}
+  .pill{display:grid;place-items:center;font-weight:900;border-radius:26px;cursor:pointer;user-select:none;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;}
+  .pill.inactive{width:110px;height:110px;font-size:34px;background:var(--purple3);color:#4a4d57;}
+  .pill.active{width:130px;height:130px;font-size:40px;background:var(--purple);color:#fff;box-shadow:0 6px 14px rgba(143,75,139,.25);}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="canvas" id="canvas">
+    <div class="frame">
+
+      <div class="header">
+        <div class="title">
+          <h1 id="titleDir">Lille Flandres</h1>
+          <div class="clock" id="clock">17:36</div>
+          <div class="chip" id="chip">IC 717 Intercity</div>
+          <div class="stat" id="topStatus">op tijd</div>
+        </div>
+        <div class="platform">
+          <div class="circle">3</div>
+          <div class="small" id="smallClock">17:20:46</div>
+        </div>
+      </div>
+
+      <div class="table" id="table"></div>
+
+      <div class="langs">
+        <div class="pill inactive" data-lang="fr">FR</div>
+        <div class="pill inactive" data-lang="de">DE</div>
+        <div class="pill inactive" data-lang="en">EN</div>
+        <div class="pill active"   data-lang="nl">NL</div>
+      </div>
+
+      <div id="measure-layer" style="position:absolute; left:-999999px; top:-999999px; visibility:hidden;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Safe scaling (no external deps) ===== */
+(function(){
+  function safeFit(){
+    try{
+      const canvas = document.getElementById('canvas');
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+      let scale = Math.min((vw - 20) / 768, (vh - 20) / 1356);
+      if(!isFinite(scale) || scale <= 0){ scale = 1; }
+      canvas.style.transform = 'scale(' + Math.max(0.1, scale) + ')';
+      canvas.style.display = 'block';
+      document.body.style.opacity = '1';
+    }catch(e){ /* noop */ }
+  }
+  window.addEventListener('resize', safeFit);
+  window.addEventListener('orientationchange', safeFit);
+  document.addEventListener('DOMContentLoaded', safeFit);
+  safeFit();
+})();
+
+/* ===== Data ===== */
+const ROUTES = {
+  nl: {
+    "Lille Flandres": ["Antwerpen-Berchem","Sint-Niklaas","Lokeren","Gent-Sint-Pieters","Waregem","Kortrijk","Mouscron","Tourcoing","Lille Flandres"],
+    "Poperinge": ["Antwerpen-Berchem","Sint-Niklaas","Lokeren","Gent-Dampoort","Gent-Sint-Pieters","Waregem","Kortrijk","Bissegem","Wevelgem","Menen","Wervik","Comines/Komen","Ieper","Poperinge"],
+    "Hamont": ["Antwerpen-Berchem","Lier","Herentals","Olen","Geel","Mol","Lommel","Overpelt","Neerpelt","Hamont"]
+  },
+  fr: {
+    "Lille Flandres": ["Anvers-Berchem","Saint-Nicolas","Lokeren","Gand-Saint-Pierre","Waregem","Courtrai","Mouscron","Tourcoing","Lille Flandres"],
+    "Poperinge": ["Anvers-Berchem","Saint-Nicolas","Lokeren","Gand-Dampoort","Gand-Saint-Pierre","Waregem","Courtrai","Bissegem","Wevelgem","Menen","Wervik","Comines/Komen","Ypres","Poperinge"],
+    "Hamont": ["Anvers-Berchem","Lierre","Herentals","Olen","Geel","Mol","Lommel","Overpelt","Neerpelt","Hamont"]
+  },
+  de: {
+    "Lille Flandres": ["Antwerpen-Berchem","Sint-Niklaas","Lokeren","Gent-Sint-Pieters","Waregem","Kortrijk","Mouscron","Tourcoing","Lille Flandern"],
+    "Poperinge": ["Antwerpen-Berchem","Sint-Niklaas","Lokeren","Gent-Dampoort","Gent-Sint-Pieters","Waregem","Kortrijk","Bissegem","Wevelgem","Menen","Wervik","Comines/Komen","Ypern","Poperinge"],
+    "Hamont": ["Antwerpen-Berchem","Lier","Herentals","Olen","Geel","Mol","Lommel","Overpelt","Neerpelt","Hamont"]
+  },
+  en: {
+    "Lille Flandres": ["Antwerp-Berchem","Sint-Niklaas","Lokeren","Ghent St-Pieters","Waregem","Kortrijk","Mouscron","Tourcoing","Lille Flandres"],
+    "Poperinge": ["Antwerp-Berchem","Sint-Niklaas","Lokeren","Ghent-Dampoort","Ghent St-Pieters","Waregem","Kortrijk","Bissegem","Wevelgem","Menen","Wervik","Comines/Komen","Ypres","Poperinge"],
+    "Hamont": ["Antwerp-Berchem","Lier","Herentals","Olen","Geel","Mol","Lommel","Overpelt","Neerpelt","Hamont"]
+  }
+};
+const I18N = {
+  title: { nl:"Lille Flandres", fr:"Lille Flandres", de:"Lille Flandern", en:"Lille Flandres" },
+  intercity: { nl:"Intercity", fr:"Intercity", de:"Intercity", en:"Intercity" },
+  status_on_time: { nl:"op tijd", fr:"à l'heure", de:"pünktlich", en:"on time" },
+  status_not_run: { nl:"rijdt niet", fr:"ne circule pas", de:"fährt nicht", en:"does not run" },
+  status_plus3: { nl:"+3 min", fr:"+3 min", de:"+3 Min.", en:"+3 min" },
+};
+const ROWS = [
+  { id:"pop_1736", t:"17:36", destKey:"Poperinge", dest:{all:"Poperinge"}, train:"IC 717", status:"on" },
+  { id:"ham_1809", t:"18:09", destKey:"Hamont", dest:{all:"Hamont"}, train:"IC 4318", status:"on" },
+  { id:"lil_1836", t:"18:36", destKey:"Lille Flandres", dest:{ all:"Lille Flandres" }, train:"IC 718", status:"p3" },
+  { id:"pop_1836", t:"18:36", destKey:"Poperinge", dest:{all:"Poperinge"}, train:"IC 719", status:"on" },
+  { id:"ham_1909", t:"19:09", destKey:"Hamont", dest:{all:"Hamont"}, train:"IC 4319", status:"on" },
+  { id:"lil_1936", t:"19:36", destKey:"Lille Flandres", dest:{ all:"Lille Flandres" }, train:"IC 719", status:"on" },
+  { id:"pop_1936", t:"19:36", destKey:"Poperinge", dest:{all:"Poperinge"}, train:"IC 719", status:"off" },
+  { id:"ham_2009", t:"20:09", destKey:"Hamont", dest:{all:"Hamont"}, train:"IC 4320", status:"on" },
+  { id:"pop_2036", t:"20:36", destKey:"Poperinge", dest:{all:"Poperinge"}, train:"IC 720", status:"on" },
+];
+
+/* ===== Helpers ===== */
+function pad(n){return String(n).padStart(2,"0");}
+function statusText(code){
+  if(code==="on")  return I18N.status_on_time[CURRENT_LANG];
+  if(code==="off") return I18N.status_not_run[CURRENT_LANG];
+  return I18N.status_plus3[CURRENT_LANG];
+}
+function statusClass(code){ return code==="on" ? "ok" : (code==="off" ? "bad" : "late"); }
+function translateDest(dest){ return dest.all ? dest.all : (dest[CURRENT_LANG] ?? dest["nl"] ?? dest["en"]); }
+
+/* ===== Measure rotated widths ===== */
+function measureRotatedWidths(labels){
+  const layer = document.getElementById('measure-layer');
+  const angle = getComputedStyle(document.documentElement).getPropertyValue('--label-angle').trim() || '36deg';
+  const size = getComputedStyle(document.documentElement).getPropertyValue('--label-size').trim() || '14px';
+  layer.innerHTML = "";
+  const widths = [];
+  labels.forEach(text => {
+    const el = document.createElement("div");
+    el.className = "slabel";
+    el.style.position = "static";
+    el.style.transform = `rotate(${angle})`;
+    el.style.fontSize = size;
+    el.textContent = text;
+    layer.appendChild(el);
+    const rect = el.getBoundingClientRect();
+    widths.push(rect.width);
+  });
+  layer.innerHTML = "";
+  return widths;
+}
+
+/* ===== Track layout (first-letter anchor, equal margins to dot centers, fix right overflow) ===== */
+function fillTrack(trackEl, labels){
+  const card = trackEl.closest('.card');
+  const cardW = card ? card.clientWidth : 700;
+  const maxTrack = Math.floor(cardW * 0.96);
+  const minTrack = Math.min(560, maxTrack);
+  const margins = 14;
+  const padCandidates = [12,10,8,6,4,2];
+  let widths = measureRotatedWidths(labels);
+  let ok = false, trackW = Math.max(minTrack, Math.min(maxTrack, 600)), lefts = [];
+
+  for(let pad of padCandidates){
+    for(let shrink=0; shrink<=2; shrink++){
+      const sizePx = 14 - shrink;
+      document.documentElement.style.setProperty('--label-size', sizePx+'px');
+      widths = measureRotatedWidths(labels);
+
+      const span = widths.reduce((a,w)=>a+w,0) + pad*(Math.max(0,labels.length-1));
+      trackW = Math.max(minTrack, Math.min(maxTrack, Math.ceil(span + 2*margins)));
+
+      // базовая раскладка левыми краями (первая буква под точкой)
+      lefts = [];
+      let cursor = margins;
+      for(let i=0;i<labels.length;i++){
+        lefts.push(cursor);
+        cursor += widths[i] + (i<labels.length-1 ? pad : 0);
+      }
+
+      // выравнивание отступов до ЦЕНТРОВ точек
+      const leftDot = lefts[0];
+      const rightDot = lefts[lefts.length-1];
+      const gapLeft = leftDot - margins;
+      const gapRight = (trackW - margins) - rightDot;
+      let delta = (gapRight - gapLeft) / 2;
+
+      const rightEdge = (idx) => lefts[idx] + widths[idx];
+      const maxNeg = margins - lefts[0];
+      const maxPos = (trackW - margins) - rightEdge(labels.length-1);
+      if(delta < maxNeg) delta = maxNeg;
+      if(delta > maxPos) delta = maxPos;
+      for(let i=0;i<lefts.length;i++) lefts[i] += delta;
+
+      // если правая подпись всё ещё близко к краю — дополнительно сдвигаем влево по доступному запасу
+      const overflowRight = (lefts[lefts.length-1] + widths[widths.length-1] + margins) - trackW;
+      if(overflowRight > 0){
+        const roomLeft = lefts[0] - margins;
+        const shiftLeft = Math.min(overflowRight, roomLeft);
+        for(let i=0;i<lefts.length;i++) lefts[i] -= shiftLeft;
+      }
+
+      // финальная проверка
+      if(lefts[0] >= margins - 0.5 && (lefts[lefts.length-1] + widths[widths.length-1] + margins) <= trackW + 0.5){
+        ok = true; break;
+      }
+    }
+    if(ok) break;
+  }
+
+  if(!ok){
+    // fallback: равномерно по центрам точек
+    trackW = Math.min(maxTrack, Math.max(minTrack, 600));
+    lefts = Array.from({length:labels.length}, (_,i)=> margins + i*((trackW-2*margins)/Math.max(1,labels.length-1)) );
+  }
+
+  trackEl.style.width = trackW + "px";
+  trackEl.innerHTML = "";
+  for(let i=0;i<labels.length;i++){
+    const wrap = document.createElement("div");
+    wrap.className = "stop-wrap";
+    wrap.style.left = lefts[i] + "px";         // абсолютные px внутри трека (центр точки)
+    wrap.innerHTML = `<div class="dot"></div><div class="slabel">${labels[i]}</div>`;
+    trackEl.appendChild(wrap);
+  }
+}
+
+/* ===== Render & language ===== */
+let CURRENT_LANG = "nl";
+let openRouteFor = null;
+const $table = document.getElementById("table");
+
+function makeRow(r){
+  const row = document.createElement("div");
+  row.className = "row";
+  row.dataset.rowid = r.id;
+  row.innerHTML = `
+    <div class="time">${r.t}</div>
+    <div class="dest">${translateDest(r.dest)}</div>
+    <div class="train">${r.train}</div>
+    <div class="status ${statusClass(r.status)}">${statusText(r.status)}</div>`;
+  row.addEventListener("click", () => toggleRoute(r));
+  return row;
+}
+function makeRouteCard(r){
+  const wrapper = document.createElement("div");
+  wrapper.className = "route open";
+  wrapper.dataset.for = r.id;
+  wrapper.innerHTML = `
+    <div class="time">${r.t}</div>
+    <div class="dest">${translateDest(r.dest)}</div>
+    <div class="train">${r.train}</div>
+    <div class="status ${statusClass(r.status)}">${statusText(r.status)}</div>
+    <div class="card"><div class="track"></div></div>`;
+  return wrapper;
+}
+
+function toggleRoute(r){
+  if(openRouteFor === r.id){ openRouteFor = null; renderTable(); return; }
+  openRouteFor = r.id; renderTable();
+}
+function renderTable(){
+  $table.innerHTML = "";
+  ROWS.forEach(r => {
+    if(openRouteFor === r.id){
+      const routeEl = makeRouteCard(r);
+      $table.appendChild(routeEl);
+      const labels = ROUTES[CURRENT_LANG][r.destKey] || [];
+      const track = routeEl.querySelector(".track");
+      requestAnimationFrame(() => fillTrack(track, labels));
+    } else {
+      $table.appendChild(makeRow(r));
+    }
+  });
+  requestAnimationFrame(fitAllStatuses);
+}
+function applyLang(lang){
+  CURRENT_LANG = lang;
+  document.getElementById("titleDir").textContent = I18N.title[lang];
+  document.getElementById("chip").textContent = "IC 717 " + I18N.intercity[lang];
+  document.getElementById("topStatus").textContent = I18N.status_on_time[lang];
+  document.querySelectorAll(".pill").forEach(p=>{
+    const active = p.dataset.lang === lang;
+    p.classList.toggle("active", active);
+    p.classList.toggle("inactive", !active);
+  });
+  renderTable();
+}
+document.querySelectorAll(".pill").forEach(p=>{
+  p.addEventListener("click", ()=> applyLang(p.dataset.lang));
+});
+
+/* ===== Status auto-fit (single line, no ellipsis) ===== */
+function fitStatus(el, minPx=18, maxPx=24){
+  try{
+    el.style.fontSize = maxPx + "px";
+    if(!el || !el.clientWidth) return;
+    let size = maxPx, iter = 0;
+    while(el.scrollWidth > el.clientWidth && size > minPx && iter < 12){
+      size -= 1; el.style.fontSize = size + "px"; iter++;
+    }
+  }catch(e){}
+}
+function fitAllStatuses(){
+  document.querySelectorAll('.status').forEach(el => fitStatus(el));
+}
+
+/* ===== Clocks ===== */
+function tick(){
+  const d = new Date();
+  const h = pad(d.getHours()), m = pad(d.getMinutes()), s = pad(d.getSeconds());
+  const clock = document.getElementById("clock");
+  const sclock = document.getElementById("smallClock");
+  if(clock) clock.textContent = `${h}:${m}`;
+  if(sclock) sclock.textContent = `${h}:${m}:${s}`;
+}
+setInterval(tick, 500); tick();
+
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  renderTable();
+});
+</script>
+
+<noscript>
+  <div style="padding:20px; text-align:center; font-family:system-ui">
+    Для отображения интерфейса требуется включённый JavaScript.
+  </div>
+</noscript>
+</body>
+</html>

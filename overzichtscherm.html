@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="nl" class="lang-nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Overzichtscherm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --purple:#914381;
+      --ink:#111111;
+      --sep:#D9D9D9;
+      --green:#1B953B;
+      --orange:#F29B19;
+      --red:#D11A1A;
+      --white:#ffffff;
+      --fs-xxl: clamp(1.5rem, 2.8vw + .6rem, 3.6rem);
+      --fs-xl:  clamp(1.3rem, 2.6vw + .4rem, 3.4rem);
+      --fs-lg:  clamp(1.25rem, 2vw + .5rem, 2.5rem);
+      --fs-md:  clamp(1rem, 1.2vw + .4rem, 1.75rem);
+      --pad-h:  clamp(1rem, 3vw, 3rem);
+      --bar-h:  clamp(42px, 8vw, 120px);
+      --foot-h: clamp(72px, 12vw, 200px);
+      --col-time:10%;
+      --col-sep:1%;
+      --col-nr:17%;
+      --col-status:16%;
+      --col-spoor:8%;
+    }
+    html.lang-de{ --col-status:18%; }
+    html.lang-de .status-ok,
+    html.lang-de .status-delay,
+    html.lang-de .status-cancel{ font-size: calc(var(--fs-lg) * 0.95); }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:"Inter",sans-serif;color:var(--ink);background:#f4f4f4}
+    .screen{width:min(1400px,100%);min-height:100dvh;margin:0 auto;background:var(--white);display:flex;flex-direction:column}
+
+    /* Header */
+    .bar{background:var(--purple);color:#fff;height:var(--bar-h);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(.5rem,2vw,1rem);padding:0 var(--pad-h);}
+    .clock{font-weight:900;font-size:var(--fs-xxl);letter-spacing:.02em;white-space:nowrap}
+    .title{text-align:center;font-weight:900;font-size:var(--fs-xl);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .weather{display:flex;align-items:center;gap:.4em;justify-self:end;font-weight:900;font-size:var(--fs-xl);white-space:nowrap;overflow:visible;}
+    .wico{width:1.1em;height:1.1em}
+    .weather span:first-child{transform:translateY(-8%);display:inline-block;}
+
+    /* Table */
+    .table-wrap{padding: clamp(.75rem, 1.5vw, 1.25rem) var(--pad-h) 0 var(--pad-h); transition: opacity .35s ease}
+    .fade{opacity:.15}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    colgroup col:nth-child(1){width:var(--col-time)}
+    colgroup col:nth-child(2){width:var(--col-sep)}
+    colgroup col:nth-child(3){width:var(--col-nr)}
+    colgroup col:nth-child(4){width:var(--col-sep)}
+    colgroup col:nth-child(5){width:auto}
+    colgroup col:nth-child(6){width:var(--col-sep)}
+    colgroup col:nth-child(7){width:var(--col-status)}
+    colgroup col:nth-child(8){width:var(--col-sep)}
+    colgroup col:nth-child(9){width:var(--col-spoor)}
+    thead th{font-size:var(--fs-md);font-weight:900;text-align:left;padding:.6em .4em .7em 0;white-space:nowrap}
+    tbody td{font-size:var(--fs-lg);padding:.75em .4em .9em 0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
+    .sep{width:1px;background:linear-gradient(var(--sep),var(--sep)) center/1px 70% no-repeat}
+    .time,.nr,.spoor{font-weight:900;white-space:nowrap}
+    .dest b{font-weight:900}
+    /* Ensure full train number visibility */
+    td.nr{white-space:nowrap; overflow:visible; text-overflow:clip;
+          font-weight:900; font-size:clamp(1.05rem, 1.8vw + .35rem, 2.2rem)}
+    .status{display:flex;flex-direction:column;align-items:flex-end;gap:.15em}
+    .status .badge{font-size:calc(var(--fs-md) * .95);opacity:.9}
+    .status-ok{color:var(--green);font-weight:900;text-align:right}
+    .status-delay{color:var(--orange);font-weight:900;text-align:right}
+    .status-cancel{color:var(--red);font-weight:900;text-align:right}
+    td:last-child{text-align:right}
+
+    /* Next departure highlight */
+    /* Soft pulsing ring indicator near the next departure time (right side) */
+    tbody tr.next .time{}
+    
+    
+    70%{ transform:translateY(-50%) scale(2.2); opacity:0;}100%{ transform:translateY(-50%) scale(2.2); opacity:0;}}
+      70%  { transform:translateY(-50%) scale(1.6); opacity:0; }
+      100% { transform:translateY(-50%) scale(1.6); opacity:0; }
+    }
+
+    /* Soft pulsing ring indicator near the next departure time */
+    tbody tr.next .time{}
+    
+    
+    
+      70%  { transform:translateY(-50%) scale(1.6); opacity:0; }
+      100% { transform:translateY(-50%) scale(1.6); opacity:0; }
+    }
+
+    tbody tr.next{background:linear-gradient(90deg, rgba(145,67,129,.08), transparent 60%);}
+    tbody tr.next .time{}
+    
+    /* pulse removed */70%{box-shadow:0 0 0 .5rem rgba(27,149,59, 0)}100%{box-shadow:0 0 0 0 rgba(27,149,59, 0)}}
+
+    /* Row enter/leave */
+    tbody tr{transition:opacity .25s ease, background-color .3s ease}
+    tbody.removing tr{opacity:.2}
+
+    /* Footer */
+    .footer{margin-top:auto;height:var(--foot-h);background:var(--purple);color:#fff;display:flex;align-items:center;gap:clamp(.75rem,1.6vw,1.5rem);padding:0 var(--pad-h)}
+    .qr{width:clamp(70px,10vw,160px);height:clamp(50px,7vw,120px);border-radius:clamp(10px,2vw,26px);background:#EFEFEF;border:clamp(4px,.7vw,10px) solid #fff;position:relative;overflow:hidden;flex:0 0 auto;box-shadow:inset 0 0 0 2px rgba(0,0,0,0.03)}
+    .qr::before,.qr::after{content:"";position:absolute;inset:clamp(6px,1vw,18px);background:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 14px),repeating-linear-gradient(0deg,#000 0 7px,transparent 7px 14px);opacity:.12}
+    .foot-text{font-size:var(--fs-md);line-height:1.25}
+    .foot-text span{display:block}
+
+    /* Mobile */
+    @media (max-width:860px){
+      .title{font-size:clamp(1.2rem, 2.4vw + .6rem, 2rem)}
+      thead{display:none}
+      table,tbody,tr,td{display:block;width:100%}
+      tbody tr{border-top:1px solid var(--sep);padding:.75rem 0}
+      .sep{display:none}
+      td{padding:.25rem 0}
+      td.time{font-weight:900}
+      td:nth-child(3){opacity:.85}
+      td:nth-child(5){margin:.25rem 0}
+      td:nth-child(7), td:last-child{display:inline-block;margin-right:.75rem}
+      td:last-child{float:right}
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header class="bar">
+      <div class="clock"><span id="clock">09:49:35</span></div>
+      <div class="title" id="title"></div>
+      <div class="weather" id="weather"><span>—</span></div>
+    </header>
+
+    <main class="table-wrap" id="tableWrap">
+      <table aria-label="Vertrekken">
+        <colgroup><col><col class="sep"><col><col class="sep"><col><col class="sep"><col><col class="sep"><col></colgroup>
+        <thead>
+          <tr>
+            <th id="thTime">TIJD</th><th></th><th id="thNr">NR</th><th></th>
+            <th id="thDest">Bestemming</th><th></th>
+            <th id="thStatus" style="text-align:right">Status</th><th></th>
+            <th id="thPlatform" style="text-align:right">Spoor</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </main>
+
+    <footer class="footer">
+      <div class="qr" aria-hidden="true"></div>
+      <div class="foot-text">
+        <span id="qr1">Scan de QR-code voor actuele info</span>
+        <span id="qr2">Scannez le QR-code pour les infos</span>
+        <span id="qr3">Scannen Sie den QR-Code voor Infos</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ---- Weather via Open-Meteo for Antwerpen ----
+    const Icons = {
+      sunny:`<svg class="wico" viewBox="0 0 64 64"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><circle cx="32" cy="32" r="10" fill="#fff" stroke="none"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M46.9 17.1l-5.7 5.7M22.8 41.2l-5.7 5.7M17.1 17.1l5.7 5.7M41.2 41.2l5.7 5.7"/></g></svg>`,
+      partly:`<svg class="wico" viewBox="0 0 64 64"><g fill="#fff"><circle cx="38" cy="22" r="10"/></g><g fill="#fff"><path d="M18 44c0-6 5-11 11-11 2 0 3 .3 5 1 2-4 6-7 11-7 8 0 14 6 14 14v1H18z"/></g></svg>`,
+      cloudy:`<svg class="wico" viewBox="0 0 64 64"><path d="M12 42c0-8 7-14 15-14 3 0 6 1 8 3 2-6 8-11 15-11 10 0 18 8 18 18v2H12z" fill="#fff"/></svg>`,
+      rain:`<svg class="wico" viewBox="0 0 64 64"><path d="M12 36c0-8 7-14 15-14 3 0 6 1 8 3 2-6 8-11 15-11 10 0 18 8 18 18v2H12z" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M20 48l-3 6M32 48l-3 6M44 48l-3 6M56 48l-3 6"/></g></svg>`,
+      fog:`<svg class="wico" viewBox="0 0 64 64"><path d="M12 36c0-8 7-14 15-14 3 0 6 1 8 3 2-6 8-11 15-11 10 0 18 8 18 18v2H12z" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M12 48h40M16 56h36"/></g></svg>`,
+      snow:`<svg class="wico" viewBox="0 0 64 64"><path d="M12 36c0-8 7-14 15-14 3 0 6 1 8 3 2-6 8-11 15-11 10 0 18 8 18 18v2H12z" fill="#fff"/><g fill="#fff"><circle cx="22" cy="52" r="3"/><circle cx="34" cy="52" r="3"/><circle cx="46" cy="52" r="3"/></g></svg>`
+    };
+    const WMO = {0:'sunny',1:'partly',2:'partly',3:'cloudy',45:'fog',48:'fog',51:'rain',53:'rain',55:'rain',61:'rain',63:'rain',65:'rain',71:'snow',73:'snow',75:'snow',95:'rain',99:'rain'};
+
+    async function updateWeather(){
+      const el=document.getElementById("weather");
+      try{
+        const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=51.2172&longitude=4.421101&current_weather=true",{cache:"no-store"});
+        const d=await res.json();
+        const c=d.current_weather;
+        const icon=Icons[WMO[c.weathercode]]||Icons.sunny;
+        el.innerHTML=icon+`<span>+${Math.round(c.temperature)}°C</span>`;
+      }catch(e){
+        el.innerHTML=Icons.sunny+`<span>+14°C</span>`;
+      }
+    }
+
+    // ---- i18n ----
+    const i18n={
+      nl:{title:"Vertrekken — Antwerpen-Centraal",th:{time:"TIJD",nr:"NR",dest:"Bestemming",status:"Status",platform:"Spoor"},
+          status:{ok:"op tijd",delay:m=>`+${m} min`,cancel:"rijdt niet"},
+          badge:(m)=> m<=0 ? "nu" : `over ${m} min`,
+          qr:["Scan de QR-code voor actuele info","Scannez le QR-code pour les infos","Scannen Sie den QR-Code voor Infos"]},
+      fr:{title:"Départs — Anvers-Central",th:{time:"HEURE",nr:"N°",dest:"Destination",status:"Statut",platform:"Voie"},
+          status:{ok:"à l’heure",delay:m=>`+${m} min`,cancel:"ne circule pas"},
+          badge:(m)=> m<=0 ? "maintenant" : `dans ${m} min`,
+          qr:["Scannez le QR-code pour les infos","Scan de QR-code voor actuele info","Scannen Sie den QR-Code voor Infos"]},
+      de:{title:"Abfahrt — Antwerpen-Centraal",th:{time:"ZEIT",nr:"NR",dest:"Reiseziel",status:"Status",platform:"Gleis"},
+          status:{ok:"pünktlich",delay:m=>`+${m} min`,cancel:"fährt nicht"},
+          badge:(m)=> m<=0 ? "jetzt" : `in ${m} Min`,
+          qr:["Scannen Sie den QR-Code für Infos","Scan de QR-code voor actuele info","Scannez le QR-code pour les infos"]}
+    };
+    const order=["nl","fr","de"];
+    let idx=0;
+
+    // ---- Liveboard (iRail) ----
+    const tbody=document.getElementById("tbody");
+    const titleEl=document.getElementById("title");
+    const thTime=document.getElementById("thTime");
+    const thNr=document.getElementById("thNr");
+    const thDest=document.getElementById("thDest");
+    const thStatus=document.getElementById("thStatus");
+    const thPlatform=document.getElementById("thPlatform");
+    const qr1=document.getElementById("qr1");
+    const qr2=document.getElementById("qr2");
+    const qr3=document.getElementById("qr3");
+    const wrap=document.getElementById("tableWrap");
+
+    function setLangClass(lang){
+      const html=document.documentElement;
+      html.classList.remove("lang-nl","lang-fr","lang-de");
+      html.classList.add("lang-"+lang);
+      html.setAttribute("lang",lang);
+    }
+
+    function vehicleShortname(vehicle){
+      if(!vehicle) return "";
+      const m = vehicle.match(/BE\.NMBS\.([A-Z]+)\s?(\d+)/i) || vehicle.match(/BE\.NMBS\.([A-Z]+)(\d+)/i);
+      return m ? (m[1].toUpperCase()+" "+m[2]) : vehicle.replace("BE.NMBS.","");
+    }
+
+    function statusHTML(delaySec, canceled, L, minutesLeft){
+      if(String(canceled)==="1") return `<div class="status"><span class="status-cancel">${L.status.cancel}</span></div>`;
+      const mins = Math.round((Number(delaySec)||0)/60);
+      const main = mins>0 ? `<span class="status-delay">${L.status.delay(mins)}</span>`
+                          : `<span class="status-ok">${L.status.ok}</span>`;
+      const badge = `<span class="badge">${L.badge(minutesLeft)}</span>`;
+      return `<div class="status">${main}${badge}</div>`;
+    }
+
+    function minutesUntil(epochSec){
+      const now = Date.now();
+      return Math.floor((epochSec*1000 - now)/60000);
+    }
+
+    async function fetchLiveboard(lang){
+      const params = new URLSearchParams({
+        station: "Antwerpen-Centraal",
+        arrdep: "departure",
+        format: "json",
+        lang
+      });
+      const url = "https://api.irail.be/liveboard/?" + params.toString();
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error("iRail error "+res.status);
+      return res.json();
+    }
+
+    function renderRows(data, lang){
+      const L=i18n[lang];
+      const deps = (data.departures && data.departures.departure) ? data.departures.departure : [];
+      const arr = Array.isArray(deps) ? deps : [deps];
+      const upcoming = arr.filter(d => String(d.left) !== "1").slice(0,10);
+      tbody.classList.add('removing');
+      setTimeout(()=>{
+        tbody.innerHTML="";
+        let firstTime = Infinity;
+        for(const d of upcoming){
+          const tEpoch = Number(d.time);
+          if(tEpoch*1000 > Date.now()) firstTime = Math.min(firstTime, tEpoch);
+        }
+        for(const d of upcoming){
+          const tEpoch = Number(d.time);
+          const dt = new Date(tEpoch*1000);
+          const tLabel = dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}).replace(":", ".");
+          const nr = vehicleShortname(d.vehicle);
+          const dest = d.station || (d.direction && d.direction.name) || "";
+          const plat = (d.platform && (d.platform.name||d.platform)) || (d.platforminfo && d.platforminfo.name) || "";
+          const minsLeft = minutesUntil(tEpoch);
+          const row = document.createElement("tr");
+          if(tEpoch === firstTime) row.classList.add("next");
+          row.innerHTML = `
+            <td class="time">${tLabel}</td><td class="sep"></td>
+            <td class="nr">${nr}</td><td class="sep"></td>
+            <td class="dest"><b>${dest}</b></td><td class="sep"></td>
+            <td class="">${statusHTML(d.delay, d.canceled, L, minsLeft)}</td><td class="sep"></td>
+            <td class="spoor">${plat}</td>`;
+          tbody.appendChild(row);
+        }
+        tbody.classList.remove('removing');
+      }, 150);
+    }
+
+    async function renderLive(lang){
+      setLangClass(lang);
+      const L=i18n[lang];
+      titleEl.textContent=L.title;
+      thTime.textContent=L.th.time;
+      thNr.textContent=L.th.nr;
+      thDest.textContent=L.th.dest;
+      thStatus.textContent=L.th.status;
+      thPlatform.textContent=L.th.platform;
+      qr1.textContent=L.qr[0]; qr2.textContent=L.qr[1]; qr3.textContent=L.qr[2];
+      try{
+        const data = await fetchLiveboard(lang);
+        renderRows(data, lang);
+      }catch(e){
+        tbody.innerHTML = `<tr><td colspan="9">Liveboard tijdelijk niet beschikbaar.</td></tr>`;
+        console.error(e);
+      }
+    }
+
+    function cycle(){
+      wrap.classList.add("fade");
+      setTimeout(async ()=>{
+        idx=(idx+1)%order.length;
+        await renderLive(order[idx]);
+        wrap.classList.remove("fade");
+      }, 300);
+    }
+
+    // Clock (steady colon)
+(function clock(){
+  const el=document.getElementById("clock");
+  function upd(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); el.textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+  upd(); setInterval(upd,1000);
+})();
+
+    // Init
+    (async function init(){
+      await renderLive(order[idx]);
+      updateWeather();
+      // Auto-rotation & refresh
+      setInterval(cycle, 13000);               // language rotation
+      setInterval(()=>renderLive(order[idx]), 10000); // refresh every 10s (keeps countdown fresh, removes departed)
+      setInterval(updateWeather, 10*60*1000);  // refresh weather
+    })();
+  </script>
+</body>
+</html>

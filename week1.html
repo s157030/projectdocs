@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>week1</title>
+
+<style>
+  html,body{height:100%;margin:0;background:#ffffff;color:#000000;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;}
+  .wrap{min-height:100vh;display:grid;place-items:center;padding:24px;}
+  .card{width:min(900px,92vw);background:#ffffff;border-radius:0;padding:28px 28px 22px;border:1px solid #000;}
+  h1{margin:0 0 10px;font-size:28px;line-height:1.15;font-weight:700;}
+  p{margin:0 0 16px;}
+  ol{margin:0;padding-left:22px;}
+  li{margin:10px 0;line-height:1.45;}
+  strong{font-weight:700;}
+  em{font-style:italic;}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,"DejaVu Sans Mono",monospace;}
+
+  .pre{white-space:pre-wrap;}
+
+  ol.struct{margin:12px 0 0 0; padding-left:24px;}
+  ol.struct>li{margin:12px 0; font-weight:700;}
+  ol.struct ul{margin:8px 0 0 0; padding-left:22px; list-style: disc;}
+  ol.struct ul li{margin:6px 0; font-weight:400;}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,"DejaVu Sans Mono",monospace; font-size:0.95em; padding:0 2px; border:1px solid #000;}
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <article class="card">
+      <h1>week 1</h1>
+      <p>Perronscherm:</p>
+      <ol>
+        <li><strong>Startlay-out.</strong> Het referentiescherm in HTML/CSS nagetekend: kop, vertrektabel, perronblok en taalknoppen.</li>
+        <li><strong>Nauwkeurige styling.</strong> Lettertypen, kleuren en marges afgestemd; vaste verhoudingen zodat het scherm niet over de hele pagina uitrekt.</li>
+        <li><strong>Taalinteractie.</strong> Knoppen FR/DE/EN/NL: de actieve knop groter en donkerpaars; wisselen van taal verandert alle labels op de pagina.</li>
+        <li><strong>Uitklapbaar paars routeblok.</strong> Klik op een regel opent/sluit het blok met tussenstations; er kan steeds maar één route geopend zijn.</li>
+        <li><strong>Route en stations.</strong> Lijn met punten en schuine stationlabels (~30–36°) opgebouwd; de <em>eerste letter</em> van elk label ligt exact boven de punt.</li>
+        <li><strong>Anti-overlap.</strong> Afstanden/hoek/lettergrootte dynamisch aangepast zodat labels niet overlappen en binnen het lichtpaarse vlak blijven.</li>
+        <li><strong>Status als “pil”.</strong> In het paarse routeblok is de status een witte afgeronde pil voor betere contrastwerking.</li>
+        <li><strong>Taalbalk onderaan.</strong> Taalbuttons gefixeerd zodat ze bij zoomen niet buiten het frame schuiven; het middendeel is scrollbaar.</li>
+        <li><strong>Status altijd één regel.</strong> Eerst <code>nowrap + ellipsis</code>, daarna slimme automatische verkleining van het lettertype (24→18px) zonder ellips.</li>
+      </ol>
+    
+      
+<p><strong>Overzichtscherm:</strong></p>
+<ol class="struct">
+  <li>Basisontwerp gemaakt
+    <ul>
+      <li>Eerste HTML‑mock‑up ontwikkeld op basis van een screenshot.</li>
+      <li>Lettertype <em>Roboto Slab</em> gebruikt, raster opgebouwd uit kolommen (tijd / nummer / bestemming / status / perron).</li>
+      <li>Verbinding gelegd met de echte gegevens van de iRail‑API.</li>
+    </ul>
+  </li>
+  <li>Functionele toevoegingen
+    <ul>
+      <li>Huidige tijd toegevoegd, automatisch elke seconde bijgewerkt.</li>
+      <li>Weergave van het weer toegevoegd (via Open‑Meteo‑API).</li>
+      <li>Taalrotatie geïmplementeerd (NL → FR → DE) elke 15 seconden, later aangepast naar 13 seconden.</li>
+    </ul>
+  </li>
+  <li>Aanpassing aan het echte vertrekschema
+    <ul>
+      <li>Vertrokken treinen verdwijnen automatisch van het scherm.</li>
+      <li>Filterlogica verfijnd: een trein verdwijnt 20 seconden na de geplande vertrektijd (inclusief vertraging) of zodra <code>left = 1</code>.</li>
+      <li>Weergave beperkt tot maximaal 10 actuele treinen.</li>
+    </ul>
+  </li>
+  <li>Typografie
+    <ul>
+      <li>Lettertype volledig vervangen door Inter (in plaats van Roboto Slab).</li>
+      <li>Alle afmetingen, marges en visuele balans behouden.</li>
+    </ul>
+  </li>
+  <li>Knipperende indicator
+    <ul>
+      <li>Een groene pulserende indicator toegevoegd bij de eerstvolgende trein.</li>
+      <li>Dichter bij de vertrektijd geplaatst, straal vergroot en gecentreerd.</li>
+      <li>Later volledig verwijderd op jouw verzoek; overige ontwerp bleef ongewijzigd.</li>
+    </ul>
+  </li>
+  <li>Weergave van treinnummers gecorrigeerd
+    <ul>
+      <li>Breedte van de kolom NR vergroot van 14% naar 17%.</li>
+      <li>Responsieve lettergrootte met <code>clamp()</code> toegevoegd zodat lange nummers niet worden afgebroken.</li>
+    </ul>
+  </li>
+  <li>Weer‑icoon aangepast
+    <ul>
+      <li>Onvolledige weergave van ☁️ / ☀️ verholpen door extra verticale ruimte.</li>
+      <li>Lichte verschuiving omhoog toegepast (<code>transform: translateY(-8%)</code>) zodat de emoji volledig zichtbaar is.</li>
+    </ul>
+  </li>
+</ol>
+
+
+    </article>
+  </div>
+</body>
+</html>
